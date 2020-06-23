@@ -17,11 +17,18 @@ import dash_core_components as dcc
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
+'''
+ToDo:
+1) Pass more information. Price etc
+2) Make it look similar to ReMax
+3) 
+
+'''
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
-path = '/Users/Emin/GitHub/AgoraAI/src'
+#path = '/Users/Emin/GitHub/AgoraAI/src'
 '''
 files = listdir(path)
 images_list = [i for i in files if i.endswith('.png')] ## output file names only
@@ -58,7 +65,7 @@ for img in images_list:
     encoded_image.append(base64.b64encode(open(img, 'rb').read()))
     item_in_df.append(img)
 
-
+#https://dash-bootstrap-components.opensource.faculty.ai/docs/components/card/
 row_1 = html.Div([(dbc.Row([
                             dbc.Col([
                                 html.Img(src='data:image/png;base64,{}'.format(encoded_image[0].decode()),
@@ -108,12 +115,10 @@ predict =  html.Div([
 container_out = html.Div([html.Div(id='container')])
 placeholder = html.Div([html.Div(id='intermediate_value', style={'display': 'none'})])                
 
-                          
-app.layout = dbc.Container(children=[row_1, html.Br(), row_2, html.Br(), placeholder, html.Br(), container_out, html.Br(), predict])
+app.layout = dbc.Container(children=[row_1, html.Br(), placeholder, html.Br(), predict, html.Br(), container_out])
 
 @app.callback(Output('intermediate_value', 'children'), #container (intermediate_value), children
-            [#Input('predict_val', 'n_clicks'),
-            Input('like_val_0', 'n_clicks_timestamp'),
+            [Input('like_val_0', 'n_clicks_timestamp'),
             Input('like_val_1','n_clicks_timestamp'),
             Input('like_val_2', 'n_clicks_timestamp'), 
             Input('like_val_3', 'n_clicks_timestamp'),
@@ -140,13 +145,15 @@ def construct_preferences(like_val_0,like_val_1, like_val_2, like_val_3, like_va
         pickedButton = "like_val_0"
         print (pickedButton)
         sample_that_matches_address_0 = data[data['addresses'].str.contains(item_in_df[0].partition('.jpg')[0])]
-        sample_that_matches_address_0.to_csv('prefs.csv', columns=list(data), mode='a', header=False)
+        return sample_that_matches_address_0.to_json()
+        #sample_that_matches_address_0.to_csv('prefs.csv', columns=list(data), mode='a', header=False)
         
     if like_val_1 == sortedTimestamps[-1]:
         pickedButton = "like_val_1"
         print (pickedButton)
         sample_that_matches_address_1 = data[data['addresses'].str.contains(item_in_df[1].partition('.jpg')[0])]
-        sample_that_matches_address_1.to_csv('prefs.csv', columns=list(data), mode='a', header=False)
+        return sample_that_matches_address_1.to_json()
+        #sample_that_matches_address_1.to_csv('prefs.csv', columns=list(data), mode='a', header=False)
         
     if like_val_2 == sortedTimestamps[-1]:
         pickedButton = "like_val_2"
@@ -172,12 +179,12 @@ def construct_preferences(like_val_0,like_val_1, like_val_2, like_val_3, like_va
         sample_that_matches_address_2 = data[data['addresses'].str.contains(item_in_df[5].partition('.jpg')[0])]
         sample_that_matches_address_2.to_csv('prefs.csv', columns=list(data), mode='a', header=False)        
 
-
         
 @app.callback(Output('container', 'children'), 
             [Input('intermediate_value', 'children'),
             Input('predict_val', 'n_clicks')])
 def update_output_images (intermediate_value, n_clicks):
+    
     if (n_clicks!=0):
         
         preferences = pd.read_csv('prefs.csv')
