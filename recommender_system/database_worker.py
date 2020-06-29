@@ -47,22 +47,33 @@ def table_exists (table_name, curr):
                 (table_name,))
     return curr.fetchone()[0]
     
-'''
-def already_loaded(table_name, scraping_date, curr):
-    
+
+def data_already_loaded(table_name, scraping_date, curr):
+    '''    
     There can be duplicates if scraping is run on the same date
     :param str table_name: name of the table
     :param str scraping_date: date of the scraping
     :param connection: psycopg2 connection object
     :return bool: True if rows corresponding to scraping_date are present
-    
-    #curr = connection.cursor()
-    query = """select exists 
-                (select 1 from {}
-                where collection_date = {})""".format(sql.Identifier('table_name'), scraping_date)
-    curr.execute(query)
+    '''    
+    query = f"""
+        SELECT EXISTS (
+            SELECT 1 FROM {table_name}
+            WHERE {table_name}.scraped_date = %s
+        );"""
+    curr.execute(query, (scraping_date,))
     return curr.fetchone()[0]
-'''
+
+
+def check_table_for_loaded_data(table_name, scraping_date, curr):
+    if data_already_loaded(table_name, scraping_date, curr):
+        print (table_name)
+        query = f"""
+        DELETE FROM {table_name} 
+        WHERE {table_name}.scraped_date = %s"""
+        curr.execute(query, (scraping_date,))
+
+
 
             
 def create_table(table_name, curr):
@@ -81,6 +92,7 @@ def create_table(table_name, curr):
                         )""".format(table_name)
     #curr = connection.cursor()
     curr.execute(query)
+    
     
 
         
