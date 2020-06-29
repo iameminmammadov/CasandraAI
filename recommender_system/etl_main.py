@@ -175,7 +175,8 @@ def transform():
         data = pd.concat([data, parsed],axis=0)
     return data
 
-    '''Dump it to S3'''
+    '''Dump it to S3. It can be dumped to S3 and logged from S3 into Database.
+    I am just logging straight into DB'''
 
 
 def load():
@@ -183,25 +184,37 @@ def load():
     ToDo:
         Write a check to stop when url start repeating.
     '''
-    data = transform()
+    #data = transform()
+    data.drop_duplicates(inplace=True)
     data['scraped_date'] = [str(date.today())] * len(data)
     
     
     table_name = 'remax_table'
-    logging.info(f"creating table{table_name} if it doesn't exist")
+    scraping_date = str(date.today())
     engine = dw.get_engine()     
     connection = dw.get_connection()
     curr = connection.cursor()
     
-    if dw.table_exists(table_name, curr): 
-        logging.info(f'writing into {table_name}')
-        data.to_sql(table_name,engine, if_exists='append', index=False)
-    else:
+    if dw.table_exists(table_name, curr) is False:
         dw.create_table(table_name, curr)
-        logging.info(f'writing into {table_name}')
+        connection.commit()
+        connection.close()
         
-
+    connection = dw.get_connection()
+    curr = connection.cursor()
     
+    
+    if dw.table_exists(table_name, curr): 
+        dw.check_table_for_loaded_data(table_name,scraping_date, curr)
+        connection.commit()
+        connection.close()
+        curr.close()
+        
+        connection = dw.get_connection()
+        curr = connection.cursor()
+        
+        logging.info(f'writing into {table_name}')
+        data.to_sql(table_name, engine, if_exists='append', index=False)
     
     connection.commit()
     connection.close()
@@ -211,6 +224,6 @@ def load():
     
 
 
-#extract()
-#data = transform()
-#load()
+extract()
+data = transform()
+load()
