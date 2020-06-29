@@ -3,7 +3,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 
-#from real_estate_scraping.main import extract, transform, load
+from etl_main import extract, transform, load
 
 '''
 Extract performs the extraction steps of webscraping:
@@ -27,29 +27,33 @@ Load CSV file containing the actual data into the database
 default_args = {
         'owner': 'Emin Mammadov',
         'depends_on_past': False,
-        'start_date': datetime.strptime (getenv('Scraping will start on'), 
-                                         '%Y-%m-%dT%H:%M'),
-         'email_on_failure': False,
-         'email_on_retry': False,
-         'retries': 3,
-         'retry_delay': timedelta(minutes = 30)
+        'start_date': datetime.now(),
+        'email_on_failure': False,
+        'email_on_retry': False,
+        'retries': 3,
+        'retry_delay': timedelta(minutes = 30)
         }
 
 dag = DAG ('real_estate_etl', 
            default_args = default_args, 
-           schedule_interval='@weekly')
+           schedule_interval='@once') #weekly
 
 
-extract_task = PythonOperator('task_id' = 'extract', 
+extract_task = PythonOperator(task_id = 'extract', 
                               python_callable = extract, 
                               dag = dag)
 
-transform_task = PythonOperator('task_id' = 'transform',
+transform_task = PythonOperator(task_id = 'transform',
                                 python_callable = transform,
                                 dag = dag)
 
-load_task = PythonOperator('task_id' = 'load',
+load_task = PythonOperator(task_id = 'load',
                            python_callable = load,
                            dag = dag)
 
 extract_task >> transform_task >> load_task
+
+'''
+#'start_date': datetime.strptime (getenv('Scraping will start on'), 
+        #                                 '%Y-%m-%dT%H:%M'),
+'''
