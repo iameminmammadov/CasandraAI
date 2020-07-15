@@ -1,22 +1,17 @@
-import logging 
-import os 
-from io import BytesIO, StringIO
-from zipfile import ZIP_DEFLATED, ZipFile
-from requests.adapters import HTTPAdapter
-import time
-from datetime import date
-import boto3
-
+import os
+from os.path import expanduser
 
 from bs4 import BeautifulSoup
-from requests.packages.urllib3.util.retry import Retry
 
 import numpy as np
 import pandas as pd
-import requests
 import googlemaps
 
-import aws
+import configparser
+from walkscore import WalkScoreAPI
+
+
+
 
 def parse_webpage(url, page_contents):
     soup = BeautifulSoup(page_contents, 'html.parser')
@@ -31,11 +26,17 @@ def parse_webpage(url, page_contents):
     data['prices'] = (np.asarray(prices).ravel()).astype(int)
     data['addresses'] = np.asarray(addresses).ravel() 
     data['province'] = np.asarray(provinces).ravel() 
-    data['cities'] = np.asarray(provinces).ravel()
+    data['cities'] = np.asarray(cities).ravel()
     data['zips'] = np.asarray(zip_codes).ravel() 
     data['beds'] = np.asarray(beds).ravel()
     data['baths'] = np.asarray(baths).ravel()
     data['property_types'] = np.asarray(property_types).ravel()
+    data['latitude'] = get_lat_long(data)[0]
+    data['longitude'] = get_lat_long(data)[1]
+    data['neighborhood'] = get_lat_long(data)[2]   
+    data['walk_score'] = get_walk_transit_bike_scores(data)[0]
+    data['transit_score'] = get_walk_transit_bike_scores(data)[1]
+    data['bike_score'] = get_walk_transit_bike_scores(data)[2]
     data['url'] = np.asarray(urls).ravel()
     return data
    
@@ -90,5 +91,80 @@ def get_urls(url, url_listing):
     for inside in url_listing:
         total_urls.append(url+'/break'+inside.a['href'])
     return total_urls
+
+def get_lat_long (data):
+    latitude = list()
+    longitude = list()
+    neighborhood = list()
+
+    
+    home = expanduser("~")
+    passfile = os.path.join(home, "config.ini")
+    config = configparser.ConfigParser()
+    config.read(passfile)
+    
+    gmaps = googlemaps.Client(key=config['google-maps-API']['key'])
+
+    
+    data.reset_index(drop=True, inplace=True)    
+    
+    for counter in range(len(data)):
+        address_toronto = data['addresses'].iloc[counter] + ',' + \
+                          data['cities'].iloc[counter] + ',' + \
+                          data['province'].iloc[counter]  + ','+\
+                          data['zips'].iloc[counter]
+                          
+        if ' - ' in address_toronto:
+            address_toronto = address_toronto.partition(' - ')[2]
+        
+        #gMaps
+        geocode_result=gmaps.geocode(address_toronto)
+        latitude.append(geocode_result[0]['geometry']['location']['lat'])
+        longitude.append(geocode_result[0]['geometry']['location']['lng'])
+        neighborhood.append(geocode_result[0]['address_components'][2]['short_name'])
+        
+    return latitude, longitude, neighborhood
+
+    
+            
+def get_walk_transit_bike_scores (data):
+    walk_score = list()
+    transit_score = list()
+    bike_score = list()
+    
+    home = expanduser("~")
+    passfile = os.path.join(home, "config.ini")
+    config = configparser.ConfigParser()
+    config.read(passfile)
+    
+    home = expanduser("~")
+    passfile = os.path.join(home, "config.ini")
+    config = configparser.ConfigParser()
+    config.read(passfile)
+    
+    walk_api = WalkScoreAPI(api_key = config['walkscore-API']['key'])
+    
+    data.reset_index(drop=True, inplace=True)    
+
+    for counter in range(len(data)):
+        address_toronto = data['addresses'].iloc[counter] + ',' + \
+                          data['cities'].iloc[counter] + ',' + \
+                          data['province'].iloc[counter]  + ','+\
+                          data['zips'].iloc[counter]
+                          
+        if ' - ' in address_toronto:
+            address_toronto = address_toronto.partition(' - ')[2]
+            
+        result_walk = walk_api.get_score(longitude = data['longitude'].iloc[counter], 
+                                         latitude = data['latitude'].iloc[counter], 
+                                         address = address_toronto)
+        
+        walk_score.append(result_walk.walk_score)
+        transit_score.append(result_walk.transit_score)
+        bike_score.append(result_walk.bike_score)
+        
+        
+        
+    return walk_score, transit_score, bike_score
 
 
