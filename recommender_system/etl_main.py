@@ -1,6 +1,6 @@
 import logging 
 import os 
-from io import BytesIO, StringIO
+from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 from requests.adapters import HTTPAdapter
 import time
@@ -8,13 +8,10 @@ from datetime import date
 
 
 
-from bs4 import BeautifulSoup as bs
 from requests.packages.urllib3.util.retry import Retry
 
-import numpy as np
 import pandas as pd
 import requests
-import googlemaps
 
 #Custom 
 import parsing_html
@@ -226,4 +223,4 @@ def load():
 
 extract()
 data = transform()
-load()
+#load()
