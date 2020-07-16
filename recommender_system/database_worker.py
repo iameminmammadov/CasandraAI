@@ -84,10 +84,16 @@ def create_table(table_name, curr):
                         addresses VARCHAR,
                         province VARCHAR,
                         cities VARCHAR,
+                        neighborhood VARCHAR,
                         zips VARCHAR,
                         beds VARCHAR,
                         baths VARCHAR,
                         property_types VARCHAR,
+                        latitude FLOAT,
+                        longitude FLOAT,
+                        walk_score INT,
+                        transit_score INT,
+                        bike_score INT, 
                         scraped_date VARCHAR
                         )""".format(table_name)
     #curr = connection.cursor()
