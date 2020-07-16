@@ -183,6 +183,7 @@ def load():
     '''
     #data = transform()
     data.drop_duplicates(inplace=True)
+    data.reset_index(inplace=True, drop=True)
     data['scraped_date'] = [str(date.today())] * len(data)
     
     
